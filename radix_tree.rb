@@ -27,7 +27,7 @@ class Edge
   def initialize(prefix, value, next_node_index)
     @prefix = prefix
     @value = value
-    @next_node_indicies = [next_node_index]
+    @next_node_index = next_node_index
   end
 
   def to_s
@@ -43,12 +43,12 @@ class Edge
     @value
   end
 
-  def add_next_node_index(index)
-    @next_node_indicies << index
+  def set_next_node_index(index)
+    @next_node_indicies = index
   end
 
-  def target_nodes
-    @next_node_indicies
+  def target_node
+    @next_node_index
   end
 end
 
@@ -87,10 +87,8 @@ class RadixTree
       next_edge = traverse_node.edges.select{ |edge| suffix(word, elements_found).start_with?(edge.label) }.first
 
       if next_edge != nil
-        next_edge.target_nodes.each do |target_node|
-          traverse_node = @tree[target_node.first]
-          elements_found += next_edge.label.length
-        end
+        traverse_node = @tree[next_edge.target_node]
+        elements_found += next_edge.label.length
       else
         traverse_node = nil
       end
@@ -126,19 +124,19 @@ root = Node.new([])
 
 node_index += 1
 
-first_edge = Edge.new('roman', '0', [node_index])
+first_edge = Edge.new('roman', '0', node_index)
 root.add_edge(first_edge)
 
 first_node = Node.new(node_index, [])
-node_index += 1
+node_index = first_edge.target_node + 1
 
-second_edge = Edge.new('us', '1', [node_index])
+second_edge = Edge.new('us', '1', node_index)
 second_node = Node.new(node_index, [])
-node_index += 1
+node_index = second_edge.target_node + 1
 
-third_edge = Edge.new('e', '2', [node_index])
+third_edge = Edge.new('e', '2', node_index)
 third_node = Node.new(node_index, [])
-node_index += 1
+node_index = third_edge.target_node + 1
 
 first_node.add_edge(second_edge)
 first_node.add_edge(third_edge)
