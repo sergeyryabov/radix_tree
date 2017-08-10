@@ -5,7 +5,17 @@ class Node
     @edges = edges
   end
 
+  #debug
+  def edges=(edges)
+    @edges = edges
+  end
+
+  def index
+    @index
+  end
+
   def add_edge(edge)
+    edge.set_current_node(@index)
     @edges << edge
   end
 
@@ -28,19 +38,23 @@ class Edge
     @prefix = prefix
     @value = value
     @next_node_index = next_node_index
-  end
-
-  def to_s
-    # {"e"=>[0]}
-    { @prefix => [@value] }
+    @current_node_index = nil
   end
 
   def label
     @prefix
   end
 
+  def set_label(string)
+    @prefix = string
+  end
+
   def value
     @value
+  end
+
+  def set_value(value)
+    @value = value
   end
 
   def set_next_node_index(index)
@@ -49,6 +63,14 @@ class Edge
 
   def target_node
     @next_node_index
+  end
+
+  def current_node
+    @current_node_index
+  end
+
+  def set_current_node(index)
+    @current_node_index = index
   end
 end
 
@@ -67,10 +89,43 @@ class RadixTree
   end
 
   def add(word, value)
-    in_tree = has?(word)
+    edge_in_tree, traverse_node = search_2(word)
 
-    if in_tree
-      # logic
+    if edge_in_tree
+      edge_value = edge_in_tree&.value
+      edge_label =  edge_in_tree&.label
+
+      common_prefix = intersection(edge_label, word)
+
+      common_prefix_node = @tree[edge_in_tree.current_node]
+
+      new_node_index = edge_in_tree.target_node + 1
+
+
+      first_edge_label = edge_label.sub(common_prefix, '')
+
+      unless first_edge_label.empty?
+        first_edge_value = edge_value
+        first_edge = Edge.new(first_edge_label, first_edge_value, new_node_index)
+
+        first_edge_node = Node.new(new_node_index, [])
+        @tree << first_edge_node
+
+        new_node_index += 1
+      end
+
+      second_edge_label = word.sub(common_prefix, '')
+      second_edge_value = value
+      second_edge = Edge.new(second_edge_label, second_edge_value, new_node_index)
+
+      second_edge_node = Node.new(new_node_index, [])
+      @tree << second_edge_node
+
+      edge_in_tree.set_label(common_prefix)
+      edge_in_tree.set_value(nil) unless first_edge_label.empty?
+
+      @tree[edge_in_tree.target_node].add_edge(first_edge) unless first_edge_label.empty?
+      @tree[edge_in_tree.target_node].add_edge(second_edge)
     else
       new_node_index = @index_counter += 1
 
@@ -86,7 +141,7 @@ class RadixTree
   def has?(word)
     next_edge, traverse_node, elements_found = search(word)
 
-    traverse_node != nil && traverse_node.is_leaf? && elements_found == word.length
+    traverse_node != nil && traverse_node.is_leaf? && elements_found == word.length || !next_edge.value.empty? && !next_edge.label.empty?
   end
 
   def value_for(word)
@@ -122,11 +177,42 @@ class RadixTree
     [next_edge, traverse_node, elements_found]
   end
 
+  def search_2(word)
+    traverse_node = @tree[0]
+
+    while traverse_node != nil && !traverse_node.is_leaf? do
+
+      next_edge = traverse_node.edges.select{ |edge| !intersection(word, edge.label).empty? }.first
+
+      if next_edge != nil
+        traverse_node = @tree[next_edge.target_node]
+      else
+        traverse_node = nil
+      end
+    end
+
+    [next_edge, traverse_node]
+  end
+
   def to_h
     # recursive build map of tree
   end
 
   private
+
+  def intersection(str1, str2)
+    match = []
+
+    i = str1.length
+
+    until i < 0 do
+      charcter = str1[i]
+      match << charcter if charcter == str2[i]
+
+      i -= 1
+    end
+    return match.join.reverse
+  end
 
   def suffix(word, elements_found)
     n = word.length - elements_found
@@ -142,39 +228,39 @@ class RadixTree
   end
 end
 
-
-           -> edge(rub, root)
-                                             -> edge(us, [2], '1') -> node(2)
-node(root) -> edge(roman, [1], nil) -> node(1)
-                                             -> edge(e, [2], '2') -> node(2)
-
-
-
-node(root, 0) -> edge(romanus,[1]) -> node(1) -> edge
-
-node_index = 0
-root = Node.new([])
-
-node_index += 1
-
-first_edge = Edge.new('roman', nil, node_index)
-root.add_edge(first_edge)
-
-first_node = Node.new(node_index, [])
-node_index = first_edge.target_node + 1
-
-second_edge = Edge.new('us', '1', node_index)
-second_node = Node.new(node_index, [])
-node_index = second_edge.target_node + 1
-
-third_edge = Edge.new('e', '2', node_index)
-third_node = Node.new(node_index, [])
-node_index = third_edge.target_node + 1
-
-first_node.add_edge(second_edge)
-first_node.add_edge(third_edge)
-
-tree = [root, first_node, second_node, third_node]
+#
+#            -> edge(rub, root)
+#                                              -> edge(us, [2], '1') -> node(2)
+# node(root) -> edge(roman, [1], nil) -> node(1)
+#                                              -> edge(e, [2], '2') -> node(2)
+#
+#
+#
+# node(root, 0) -> edge(romanus,[1]) -> node(1) -> edge
+#
+# node_index = 0
+# root = Node.new([])
+#
+# node_index += 1
+#
+# first_edge = Edge.new('roman', nil, node_index)
+# root.add_edge(first_edge)
+#
+# first_node = Node.new(node_index, [])
+# node_index = first_edge.target_node + 1
+#
+# second_edge = Edge.new('us', '1', node_index)
+# second_node = Node.new(node_index, [])
+# node_index = second_edge.target_node + 1
+#
+# third_edge = Edge.new('e', '2', node_index)
+# third_node = Node.new(node_index, [])
+# node_index = third_edge.target_node + 1
+#
+# first_node.add_edge(second_edge)
+# first_node.add_edge(third_edge)
+#
+# tree = [root, first_node, second_node, third_node]
 
 class String
   def last(limit = 1)
@@ -189,29 +275,5 @@ class String
 
   def from(position)
     self[position..-1]
-  end
-
-  def intersection(str)
-    return '' if [self, str].any?(&:empty?)
-
-    matrix = Array.new(self.length) { Array.new(str.length) { 0 } }
-
-    intersection_length = 0
-    intersection_end    = 0
-
-    self.length.times do |x|
-      str.length.times do |y|
-        next unless self[x] == str[y]
-        matrix[x][y] = 1 + (([x, y].all?(&:zero?)) ? 0 : matrix[x-1][y-1])
-
-        next unless matrix[x][y] > intersection_length
-        intersection_length = matrix[x][y]
-        intersection_end    = x
-      end
-    end
-
-    intersection_start = intersection_end - intersection_length + 1
-
-    slice(intersection_start..intersection_end)
   end
 end
