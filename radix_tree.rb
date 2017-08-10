@@ -80,6 +80,8 @@ class RadixTree
     @root = Node.new([])
     @tree = [@root]
     @index_counter = 0
+    @words = array_of_words_with_values.map(&:keys).flatten
+    @values = array_of_words_with_values.map(&:values).flatten
 
     fill_tree(array_of_words_with_values)
   end
@@ -89,6 +91,9 @@ class RadixTree
   end
 
   def add(word, value)
+    @words << word
+    @values << value
+
     edge_in_tree, traverse_node = search_2(word)
 
     if edge_in_tree
@@ -195,7 +200,7 @@ class RadixTree
   end
 
   def to_h
-    # recursive build map of tree
+    @words.zip(@values).to_h
   end
 
   private
@@ -227,40 +232,6 @@ class RadixTree
     end
   end
 end
-
-#
-#            -> edge(rub, root)
-#                                              -> edge(us, [2], '1') -> node(2)
-# node(root) -> edge(roman, [1], nil) -> node(1)
-#                                              -> edge(e, [2], '2') -> node(2)
-#
-#
-#
-# node(root, 0) -> edge(romanus,[1]) -> node(1) -> edge
-#
-# node_index = 0
-# root = Node.new([])
-#
-# node_index += 1
-#
-# first_edge = Edge.new('roman', nil, node_index)
-# root.add_edge(first_edge)
-#
-# first_node = Node.new(node_index, [])
-# node_index = first_edge.target_node + 1
-#
-# second_edge = Edge.new('us', '1', node_index)
-# second_node = Node.new(node_index, [])
-# node_index = second_edge.target_node + 1
-#
-# third_edge = Edge.new('e', '2', node_index)
-# third_node = Node.new(node_index, [])
-# node_index = third_edge.target_node + 1
-#
-# first_node.add_edge(second_edge)
-# first_node.add_edge(third_edge)
-#
-# tree = [root, first_node, second_node, third_node]
 
 class String
   def last(limit = 1)
